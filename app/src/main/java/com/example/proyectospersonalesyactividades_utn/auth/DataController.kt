@@ -98,7 +98,6 @@ class DataController(context: Context) {
             dbHelper.deleteProject(projectId)
         }
     }
-
     // ── ACTIVIDADES ───────────────────────────────────────────────────────
 
     /**

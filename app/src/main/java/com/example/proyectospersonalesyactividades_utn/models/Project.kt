@@ -5,7 +5,7 @@ package com.example.proyectospersonalesyactividades_utn.models
  * Representa un proyecto perteneciente a un usuario.
  */
 data class Project(
-    val id: Long,           // project_id en la base
+    val id: Long = 0L,      // project_id en la base
     val userId: Long,       // referencia a User.id
     val name: String,       // nombre del proyecto
     val description: String,// descripción opcional

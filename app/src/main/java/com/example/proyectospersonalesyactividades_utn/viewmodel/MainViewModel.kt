@@ -57,11 +57,65 @@ class MainViewModel(private val controller: DataController) : ViewModel() {
     private val _projects = MutableLiveData<List<Project>>(emptyList())
     val projects: LiveData<List<Project>> = _projects
 
+    // LiveData to hold the project being edited (optional, but useful for dialogs)
+    private val _projectToEdit = MutableLiveData<Project?>(null)
+    val projectToEdit: LiveData<Project?> = _projectToEdit
+
+
     fun loadProjects(userId: Long) {
         viewModelScope.launch {
+            // This already correctly calls your getProjects method
             _projects.value = controller.getProjects(userId)
         }
     }
+
+    // --- Project CRUD ViewModel Functions using YOUR Controller methods ---
+
+    fun addProject(project: Project) {
+        viewModelScope.launch {
+            // Calls YOUR createProject method
+            val newRowId = controller.createProject(project)
+            if (newRowId != -1L) {
+                // Refresh the list after successful insertion
+                // Need the userId from the project to reload the list
+                loadProjects(project.userId)
+            }
+            // Optional: Handle error if newRowId is -1
+        }
+    }
+
+    fun updateProject(project: Project) {
+        viewModelScope.launch {
+            // Calls YOUR updateProject method
+            val rowsAffected = controller.updateProject(project)
+            if (rowsAffected > 0) {
+                // Refresh the list after successful update
+                // Need the userId from the project to reload the list
+                loadProjects(project.userId)
+            }
+            // Optional: Handle error if rowsAffected is 0
+        }
+    }
+
+    fun deleteProject(projectId: Long, userId: Long) {
+        viewModelScope.launch {
+            // Calls YOUR deleteProject method
+            val rowsAffected = controller.deleteProject(projectId)
+            if (rowsAffected > 0) {
+                // Refresh the list after successful deletion
+                loadProjects(userId) // Use the userId passed to the screen
+            }
+            // Optional: Handle error if rowsAffected is 0
+        }
+    }
+
+    // Function to select a project for editing
+
+    // Function to clear the selected project for editing
+    fun clearProjectToEdit() {
+        _projectToEdit.value = null
+    }
+
 
     // — Activities list —
     private val _activities = MutableLiveData<List<Activity>>(emptyList())
