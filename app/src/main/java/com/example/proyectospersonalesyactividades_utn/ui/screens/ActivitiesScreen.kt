@@ -24,6 +24,7 @@ import com.example.proyectospersonalesyactividades_utn.models.Project // Ensure 
 // data class Project(...)
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActivitiesScreen(
     viewModel: MainViewModel,
@@ -64,7 +65,18 @@ fun ActivitiesScreen(
 
 
     Scaffold(
-
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text("Actividades: ${currentProject?.name ?: "Cargando..."}")
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) { // Call the onBack lambda when clicked
+                         Icon(Icons.Filled.ArrowBack, contentDescription = "Atrás") // The back arrow icon
+                    }
+                }
+            )
+        },
 
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
