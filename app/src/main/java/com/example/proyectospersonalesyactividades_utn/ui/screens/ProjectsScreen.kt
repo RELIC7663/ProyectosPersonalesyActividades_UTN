@@ -19,13 +19,14 @@ import com.example.proyectospersonalesyactividades_utn.viewmodel.MainViewModel
 import com.example.proyectospersonalesyactividades_utn.models.Project // Ensure Project data class is imported
 
 // Make sure your Project data class is accessible
-// data class Project(val id: Long = 0, val userId: Long, val name: String, ...)
+// data class Project(val id: Long = 0L, val userId: Long, val name: String, ...)
+
 
 @Composable
 fun ProjectsScreen(
     viewModel: MainViewModel,
     userId: Long, // The ID of the currently logged-in user
-    onProjectSelected: (projectId: Long) -> Unit,
+    onProjectSelected: (projectId: Long) -> Unit, // This is the callback to navigate to Activities
     onLogout: () -> Unit // onLogout should handle viewModel.resetLoginState() in AppNavHost
 ) {
     // Observe the list of projects from the ViewModel
@@ -51,6 +52,17 @@ fun ProjectsScreen(
     LaunchedEffect(userId) {
         viewModel.loadProjects(userId)
     }
+
+    // LaunchedEffect to show the Edit dialog when projectToEditState is set
+    // This also handles clearing the state when the dialog is dismissed
+    LaunchedEffect(projectToEditState) {
+        if (projectToEditState != null) {
+            showEditDialog = true
+        } else {
+            showEditDialog = false // Ensure dialog is hidden when state is null
+        }
+    }
+
 
     Scaffold( // Using Scaffold for better structure with a floating action button
         floatingActionButton = {
@@ -93,15 +105,16 @@ fun ProjectsScreen(
                         items(projects, key = { it.id }) { project -> // Use key for better list performance
                             ProjectItem(
                                 project = project,
-                                onProjectClick = onProjectSelected,
+                                // Pass the navigation callback to the ProjectItem's new parameter
+                                onViewActivitiesClick = { projectId ->
+                                    onProjectSelected(projectId) // This calls the callback from AppNavHost
+                                },
                                 onEditClick = {
-                                    // Set the project state for editing and show the dialog
-                                    projectToEditState = it // Set the project object
-                                    showEditDialog = true
+                                    projectToEditState = it // Set the project object for editing
+                                    // showEditDialog will be true via the LaunchedEffect reacting to projectToEditState
                                 },
                                 onDeleteClick = {
-                                    // Set the project ID to delete and show confirmation dialog
-                                    projectToDeleteId = it.id
+                                    projectToDeleteId = it.id // Set the project ID for deletion
                                     showDeleteConfirmDialog = true
                                 }
                             )
@@ -124,10 +137,10 @@ fun ProjectsScreen(
                 val newProject = Project(
                     userId = userId,
                     name = name,
-                    description = description,
+                    description = description, // Assuming description is String? based on DB schema
                     startDate = startDate,
                     endDate = endDate
-                    // id is 0, database will assign it
+                    // id is 0L by default in the data class
                 )
                 viewModel.addProject(newProject) // Call ViewModel add function
                 showAddDialog = false
@@ -135,19 +148,18 @@ fun ProjectsScreen(
         )
     }
 
-    // Edit Project Dialog - Shown only if projectToEditState is not null
+    // Edit Project Dialog - Shown only if showEditDialog is true and projectToEditState is not null
     if (showEditDialog && projectToEditState != null) {
         EditProjectDialog(
             project = projectToEditState!!, // Pass the project object to the dialog
             onDismiss = {
                 showEditDialog = false
-                projectToEditState = null // Clear the project being edited state
+                projectToEditState = null // Clear the project being edited state when dialog is dismissed
             },
             onProjectUpdated = { updatedName, updatedDescription, updatedStartDate, updatedEndDate ->
-                // Create an updated Project object based on the one being edited
-                val updatedProject = projectToEditState!!.copy( // Use copy to maintain original ID, userId, etc.
+                val updatedProject = projectToEditState!!.copy( // Use copy to maintain original ID, userId
                     name = updatedName,
-                    description = updatedDescription,
+                    description = updatedDescription, // Assuming description is String?
                     startDate = updatedStartDate,
                     endDate = updatedEndDate
                 )
@@ -190,22 +202,20 @@ fun ProjectsScreen(
 
 // --- Helper Composables ---
 
-// ProjectItem Composable (Improved layout)
+// ProjectItem Composable with a View Activities button and icons for Edit/Delete
 @Composable
 fun ProjectItem(
     project: Project,
-    onProjectClick: (projectId: Long) -> Unit,
-    onEditClick: (project: Project) -> Unit, // Pass the whole Project object
-    onDeleteClick: (project: Project) -> Unit // Pass the whole Project object
+    onViewActivitiesClick: (projectId: Long) -> Unit, // NEW: Callback for viewing activities
+    onEditClick: (project: Project) -> Unit,
+    onDeleteClick: (project: Project) -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-        // Use separate click for the card body vs. icon buttons
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier
             .fillMaxWidth()
-            .clickable { onProjectClick(project.id) } // Make the main content clickable
+            // Removed clickable from the main column
             .padding(12.dp)
         ) {
             Text(project.name, style = MaterialTheme.typography.titleMedium)
@@ -214,28 +224,37 @@ fun ProjectItem(
             Text("Inicio: ${project.startDate}", style = MaterialTheme.typography.bodySmall)
             Text("Fin: ${project.endDate}", style = MaterialTheme.typography.bodySmall)
 
+            Spacer(modifier = Modifier.height(8.dp)) // Space before buttons
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End // Align icons to the end
+                horizontalArrangement = Arrangement.SpaceBetween, // Distribute buttons
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Edit Button
-                IconButton(onClick = { onEditClick(project) }) { // Pass the project object
-                    Icon(Icons.Filled.Edit, "Editar")
+                // Button to View Activities - Calls the new onViewActivitiesClick lambda
+                OutlinedButton(onClick = { onViewActivitiesClick(project.id) }) {
+                    Text("Ver Actividades")
                 }
-                // Delete Button
-                IconButton(onClick = { onDeleteClick(project) }) { // Pass the project object
-                    Icon(Icons.Filled.Delete, "Eliminar")
+
+                Row { // Group Edit and Delete icons together
+                    // Edit Button
+                    IconButton(onClick = { onEditClick(project) }) {
+                        Icon(Icons.Filled.Edit, "Editar")
+                    }
+                    // Delete Button
+                    IconButton(onClick = { onDeleteClick(project) }) {
+                        Icon(Icons.Filled.Delete, "Eliminar")
+                    }
                 }
             }
         }
     }
 }
 
-// AddProjectDialog - Collects data and passes to callback
+// AddProjectDialog - (Keep the same)
 @Composable
 fun AddProjectDialog(
     onDismiss: () -> Unit,
-    // Callback provides collected input data
     onProjectAdded: (name: String, description: String, startDate: String, endDate: String) -> Unit
 ) {
     var name by remember { mutableStateOf(TextFieldValue("")) }
@@ -252,21 +271,17 @@ fun AddProjectDialog(
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Descripción (Opcional)") })
                 Spacer(modifier = Modifier.height(8.dp))
-                // TODO: Consider using a Date Picker for date fields and validating format
                 OutlinedTextField(value = startDate, onValueChange = { startDate = it }, label = { Text("Fecha Inicio (YYYY-MM-DD)") })
                 Spacer(modifier = Modifier.height(8.dp))
-                // TODO: Consider using a Date Picker for date fields and validating format
                 OutlinedTextField(value = endDate, onValueChange = { endDate = it }, label = { Text("Fecha Fin (YYYY-MM-DD)") })
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    // Basic validation
                     if (name.text.isNotBlank() && startDate.text.isNotBlank() && endDate.text.isNotBlank()) {
                         onProjectAdded(name.text, description.text, startDate.text, endDate.text)
                     }
-                    // Optionally show error message if validation fails
                 }
             ) {
                 Text("Guardar")
@@ -281,15 +296,13 @@ fun AddProjectDialog(
 }
 
 
-// EditProjectDialog - Receives Project data, collects updates, passes back
+// EditProjectDialog - (Keep the same)
 @Composable
 fun EditProjectDialog(
-    project: Project, // Receives the project data to pre-fill the form
+    project: Project,
     onDismiss: () -> Unit,
-    // Callback provides updated input data (excluding ID, which is in the original Project)
     onProjectUpdated: (name: String, description: String, startDate: String, endDate: String) -> Unit
 ) {
-    // Initialize states with project data
     var name by remember { mutableStateOf(TextFieldValue(project.name)) }
     var description by remember { mutableStateOf(TextFieldValue(project.description ?: "")) }
     var startDate by remember { mutableStateOf(TextFieldValue(project.startDate)) }
@@ -304,22 +317,17 @@ fun EditProjectDialog(
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Descripción (Opcional)") })
                 Spacer(modifier = Modifier.height(8.dp))
-                // TODO: Consider using a Date Picker for date fields and validating format
                 OutlinedTextField(value = startDate, onValueChange = { startDate = it }, label = { Text("Fecha Inicio (YYYY-MM-DD)") })
                 Spacer(modifier = Modifier.height(8.dp))
-                // TODO: Consider using a Date Picker for date fields and validating format
                 OutlinedTextField(value = endDate, onValueChange = { endDate = it }, label = { Text("Fecha Fin (YYYY-MM-DD)") })
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    // Basic validation
                     if (name.text.isNotBlank() && startDate.text.isNotBlank() && endDate.text.isNotBlank()) {
-                        // Pass the updated data back to the screen
                         onProjectUpdated(name.text, description.text, startDate.text, endDate.text)
                     }
-                    // Optionally show error message if validation fails
                 }
             ) {
                 Text("Actualizar")

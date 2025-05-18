@@ -78,7 +78,34 @@ class DataController(context: Context) {
             list
         }
     }
+    suspend fun getProjectById(projectId: Long): Project? = withContext(Dispatchers.IO) {
+        var project: Project? = null
+        // Use dbHelper's readableDatabase to query the Projects table
+        val cursor = dbHelper.readableDatabase.query(
+            "Projects", // Table name
+            null,       // Columns (null means all columns)
+            "project_id = ?", // WHERE clause
+            arrayOf(projectId.toString()), // Arguments for WHERE clause
+            null, null, // groupBy, having
+            null,       // orderBy
+            "1"         // LIMIT 1 row
+        )
 
+        cursor.use { // Ensure the cursor is closed
+            if (it.moveToFirst()) { // Move to the first (and only) result row
+                // Map the cursor row to a Project object
+                project = Project(
+                    id = it.getLong(it.getColumnIndexOrThrow("project_id")),
+                    userId = it.getLong(it.getColumnIndexOrThrow("user_id")), // Make sure you get the userId too
+                    name = it.getString(it.getColumnIndexOrThrow("name")),
+                    description = it.getString(it.getColumnIndexOrThrow("description")),
+                    startDate = it.getString(it.getColumnIndexOrThrow("start_date")),
+                    endDate = it.getString(it.getColumnIndexOrThrow("end_date"))
+                )
+            }
+        }
+        project // Return the Project object or null
+    }
     /**
      * Actualiza un proyecto; devuelve filas afectadas.
      */

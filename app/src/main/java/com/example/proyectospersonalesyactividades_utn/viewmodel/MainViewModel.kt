@@ -17,6 +17,9 @@ class MainViewModel(private val controller: DataController) : ViewModel() {
     private val _loginSuccess = MutableLiveData<Long?>(null)
     val loginSuccess: LiveData<Long?> = _loginSuccess // Exposed as LiveData<Long?>
 
+    private val _currentProject = MutableLiveData<Project?>(null)
+    val currentProject: LiveData<Project?> = _currentProject
+
 
     fun login(username: String, password: String) {
         viewModelScope.launch {
@@ -119,7 +122,6 @@ class MainViewModel(private val controller: DataController) : ViewModel() {
         _projectToEdit.value = null
     }
 
-
     // — Activities list —
     private val _activities = MutableLiveData<List<Activity>>(emptyList())
     val activities: LiveData<List<Activity>> = _activities
@@ -127,16 +129,61 @@ class MainViewModel(private val controller: DataController) : ViewModel() {
     fun loadActivities(projectId: Long) {
         viewModelScope.launch {
             _activities.value = controller.getActivities(projectId)
+            // Recalculate progress after loading activities for this project
+            calculateProgress(projectId)
+        }
+    }
+    fun loadProjectDetails(projectId: Long) {
+        viewModelScope.launch {
+            // *** IMPORTANT: This requires a 'getProjectById' method in your DataController ***
+            // *** that queries the database for a single project by its ID and returns a Project? ***
+            _currentProject.value = controller.getProjectById(projectId) // Assuming controller.getProjectById exists and returns Project?
         }
     }
 
+    // --- New Activity CRUD ViewModel Functions ---
+
+    fun addActivity(activity: Activity) {
+        viewModelScope.launch {
+            val newRowId = controller.createActivity(activity) // Assuming controller.addActivity exists
+            if (newRowId != -1L) {
+                // Refresh the list and progress after successful insertion
+                loadActivities(activity.projectId) // Reload activities for the project
+            }
+            // Optional: Handle error if newRowId is -1
+        }
+    }
+
+    fun updateActivity(activity: Activity) {
+        viewModelScope.launch {
+            val rowsAffected = controller.updateActivity(activity) // Assuming controller.updateActivity exists
+            if (rowsAffected > 0) {
+                // Refresh the list and progress after successful update
+                loadActivities(activity.projectId) // Reload activities for the project
+            }
+            // Optional: Handle error if rowsAffected is 0
+        }
+    }
+
+    fun deleteActivity(activityId: Long, projectId: Long) {
+        viewModelScope.launch {
+            val rowsAffected = controller.deleteActivity(activityId) // Assuming controller.deleteActivity exists
+            if (rowsAffected > 0) {
+                // Refresh the list and progress after successful deletion
+                loadActivities(projectId) // Reload activities for the project
+            }
+            // Optional: Handle error if rowsAffected is 0
+        }
+    }
+
+
     // — Progress —
-    private val _progress = MutableLiveData<Float>()
+    private val _progress = MutableLiveData<Float>(0f) // Initialize with 0%
     val progress: LiveData<Float> = _progress
 
     fun calculateProgress(projectId: Long) {
         viewModelScope.launch {
-            _progress.value = controller.getProjectProgress(projectId)
+            _progress.value = controller.getProjectProgress(projectId) // Assuming getProjectProgress exists
         }
     }
 }

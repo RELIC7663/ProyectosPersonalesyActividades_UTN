@@ -39,6 +39,7 @@ fun AppNavHost(viewModel: MainViewModel) {
                 }
             )
         }
+
         is Screen.Registration -> { // Add the case for the Registration screen
             RegistrationScreen(
                 viewModel = viewModel,
@@ -48,6 +49,7 @@ fun AppNavHost(viewModel: MainViewModel) {
                 }
             )
         }
+
         is Screen.Projects -> {
             ProjectsScreen(
                 viewModel = viewModel,
@@ -67,6 +69,7 @@ fun AppNavHost(viewModel: MainViewModel) {
             ActivitiesScreen(
                 viewModel = viewModel,
                 projectId = screen.projectId,
+                userId = screen.userId, // <-- Pass the userId here
                 onBack = {
                     // Volver a lista de proyectos
                     viewModel.loadProjects(screen.userId) // Reload projects when returning
