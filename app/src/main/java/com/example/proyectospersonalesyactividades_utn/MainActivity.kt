@@ -11,6 +11,7 @@ import com.example.proyectospersonalesyactividades_utn.viewmodel.MainViewModel
 import com.example.proyectospersonalesyactividades_utn.ui.navigation.AppNavHost
 import com.example.proyectospersonalesyactividades_utn.ui.theme.ProyectosPersonalesyActividades_UTNTheme
 
+
 class MainActivity : ComponentActivity() {
     private lateinit var mainViewModel: MainViewModel
 

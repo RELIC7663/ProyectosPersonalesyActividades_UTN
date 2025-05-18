@@ -13,14 +13,45 @@ import kotlinx.coroutines.launch
 class MainViewModel(private val controller: DataController) : ViewModel() {
 
     // — Login state —
-    private val _loginSuccess = MutableLiveData<Boolean>()
-    val loginSuccess: LiveData<Boolean> = _loginSuccess
+    // Changed to Boolean? to allow null for initial/reset state
+    private val _loginSuccess = MutableLiveData<Boolean?>(null)
+    val loginSuccess: LiveData<Boolean?> = _loginSuccess
 
     fun login(username: String, password: String) {
         viewModelScope.launch {
+            // Optional: Set to null or loading state before the attempt
+            _loginSuccess.value = null
             _loginSuccess.value = controller.login(username, password)
         }
     }
+
+    // Add function to reset login state after it's consumed by the UI
+    fun resetLoginState() {
+        _loginSuccess.value = null // Reset to null after the event is handled
+    }
+
+    // — Registration state —
+    // Changed to Boolean? to allow null for initial/reset state
+    private val _registrationSuccess = MutableLiveData<Boolean?>(null)
+    val registrationSuccess: LiveData<Boolean?> = _registrationSuccess
+
+    // Modified to accept email and use the specific controller function
+    fun register(username: String, password: String, email: String) {
+        viewModelScope.launch {
+            // Optional: Set to null or loading state before the attempt
+            _registrationSuccess.value = null
+            val userId = controller.registerUser(username, password, email)
+
+            // Assume registration is successful if userId is positive (or not -1)
+            _registrationSuccess.value = userId > 0 // or userId != -1, based on your implementation
+        }
+    }
+
+    // Add function to reset registration state after it's consumed by the UI
+    fun resetRegistrationState() {
+        _registrationSuccess.value = null // Reset to null
+    }
+
 
     // — Projects list —
     private val _projects = MutableLiveData<List<Project>>(emptyList())

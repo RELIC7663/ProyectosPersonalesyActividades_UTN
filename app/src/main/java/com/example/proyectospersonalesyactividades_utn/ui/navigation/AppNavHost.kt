@@ -2,14 +2,14 @@ package com.example.proyectospersonalesyactividades_utn.ui.navigation
 
 import androidx.compose.runtime.*
 import com.example.proyectospersonalesyactividades_utn.viewmodel.MainViewModel
-import com.example.proyectospersonalesyactividades_utn.ui.screens.*
-
+import com.example.proyectospersonalesyactividades_utn.ui.screens.* // Asegúrate de que RegistrationScreen está en este package o impórtalo
 
 /**
  * Define las posibles pantallas de la app.
  */
 sealed class Screen {
     object Login : Screen()
+    object Registration : Screen() // Add the Registration screen
     data class Projects(val userId: Long) : Screen()
     data class Activities(val projectId: Long, val userId: Long) : Screen()
 }
@@ -26,11 +26,27 @@ fun AppNavHost(viewModel: MainViewModel) {
 
     when (val screen = currentScreen) {
         is Screen.Login -> {
-            LoginScreen(viewModel) { userId ->
-                // Al ingresar, mostrar lista de proyectos
-                viewModel.loadProjects(userId)
-                currentScreen = Screen.Projects(userId)
-            }
+            LoginScreen(
+                viewModel = viewModel,
+                onLoginSuccess = { userId ->
+                    // Al ingresar, mostrar lista de proyectos
+                    viewModel.loadProjects(userId) // Make sure you have a way to get the actual userId after login
+                    currentScreen = Screen.Projects(userId) // Navigate to Projects
+                },
+                // Add a way to navigate to Registration from Login screen
+                onNavigateToRegistration = {
+                    currentScreen = Screen.Registration
+                }
+            )
+        }
+        is Screen.Registration -> { // Add the case for the Registration screen
+            RegistrationScreen(
+                viewModel = viewModel,
+                onRegistrationSuccess = {
+                    // After successful registration, navigate back to Login screen
+                    currentScreen = Screen.Login
+                }
+            )
         }
         is Screen.Projects -> {
             ProjectsScreen(
@@ -41,6 +57,7 @@ fun AppNavHost(viewModel: MainViewModel) {
                     currentScreen = Screen.Activities(projectId, screen.userId)
                 },
                 onLogout = {
+                    viewModel.resetLoginState()
                     currentScreen = Screen.Login
                 }
             )
@@ -52,7 +69,7 @@ fun AppNavHost(viewModel: MainViewModel) {
                 projectId = screen.projectId,
                 onBack = {
                     // Volver a lista de proyectos
-                    viewModel.loadProjects(screen.userId)
+                    viewModel.loadProjects(screen.userId) // Reload projects when returning
                     currentScreen = Screen.Projects(screen.userId)
                 }
             )
