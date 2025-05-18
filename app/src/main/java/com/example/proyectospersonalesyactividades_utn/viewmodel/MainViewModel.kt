@@ -14,15 +14,18 @@ class MainViewModel(private val controller: DataController) : ViewModel() {
 
     // — Login state —
     // Changed to Boolean? to allow null for initial/reset state
-    private val _loginSuccess = MutableLiveData<Boolean?>(null)
-    val loginSuccess: LiveData<Boolean?> = _loginSuccess
+    private val _loginSuccess = MutableLiveData<Long?>(null)
+    val loginSuccess: LiveData<Long?> = _loginSuccess // Exposed as LiveData<Long?>
+
 
     fun login(username: String, password: String) {
         viewModelScope.launch {
             // Optional: Set to null or loading state before the attempt
             _loginSuccess.value = null
-            _loginSuccess.value = controller.login(username, password)
+            _loginSuccess.value = controller.login2(username, password)
         }
+
+
     }
 
     // Add function to reset login state after it's consumed by the UI

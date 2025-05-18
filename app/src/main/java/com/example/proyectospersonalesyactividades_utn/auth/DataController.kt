@@ -25,6 +25,10 @@ class DataController(context: Context) {
             dbHelper.checkUserCredentials(username, password)
         }
     }
+    suspend fun login2(username: String, password: String): Long? = withContext(Dispatchers.IO) {
+        dbHelper.checkUserCredentials2(username, password) // Call the updated dbHelper method
+    }
+
 
     /**
      * Registra un usuario; devuelve nuevo ID o -1.

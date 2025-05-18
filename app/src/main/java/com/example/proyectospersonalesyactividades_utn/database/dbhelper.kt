@@ -90,6 +90,22 @@ class dbhelper(context: Context) : SQLiteOpenHelper(
         cursor.close()
         return exists  // :contentReference[oaicite:5]{index=5}
     }
+    fun checkUserCredentials2(username: String, password: String): Long? {
+        val cursor: Cursor = readableDatabase.query(
+            "Users",
+            arrayOf("user_id"), // Select the user_id
+            "username = ? AND password = ?",
+            arrayOf(username, password),
+            null, null, null
+        )
+        var userId: Long? = null
+        cursor.use { // Use use block for auto-closing
+            if (it.moveToFirst()) {
+                userId = it.getLong(it.getColumnIndexOrThrow("user_id")) // Get the user_id
+            }
+        }
+        return userId // Return the user_id or null
+    }
 
     // ───── Métodos CRUD para Projects ─────
 

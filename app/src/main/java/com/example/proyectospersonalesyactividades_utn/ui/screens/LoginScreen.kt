@@ -21,30 +21,38 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
 
     // State to hold the message for the user (e.g., login failed)
-    var loginMessage by remember { mutableStateOf<String?>(null) } // <-- State for the message
+    var loginMessage by remember { mutableStateOf<String?>(null) }
 
-    val loginSuccess by viewModel.loginSuccess.observeAsState()
+    // Observe the LiveData<Long?>: null for initial/failure, non-null Long for success (the user ID)
+    val loggedInUserId by viewModel.loginSuccess.observeAsState(initial = null) // Now observing Long?
 
-    // Use LaunchedEffect to react to changes in loginSuccess
-    LaunchedEffect(loginSuccess) {
-        when (loginSuccess) {
-            true -> {
-                // Login successful
-                val loggedInUserId = 1L // <<-- REPLACE WITH REAL USER ID FROM LOGIN
-                onLoginSuccess(loggedInUserId) // Navigate on success
+    // State to track if a login attempt has been made.
+    // Needed to distinguish initial null from a null result after an attempt (failure).
+    var loginAttemptMade by remember { mutableStateOf(false) }
+
+
+    // Use LaunchedEffect to react to changes in loggedInUserId
+    LaunchedEffect(loggedInUserId) {
+        when {
+            // If loggedInUserId becomes non-null, login was successful
+            loggedInUserId != null -> {
+                val userId = loggedInUserId!! // Get the non-null userId safely
+                onLoginSuccess(userId) // Pass the actual user ID to the navigation callback
                 loginMessage = null // Clear message on success
+                loginAttemptMade = false // Reset attempt state after success
+                viewModel.resetLoginState() // Consume the success event by resetting ViewModel state
+
             }
-            false -> {
-                // Login failed. Display a message.
-                // THIS IS WHERE THE MESSAGE FOR FAILURE IS SET
+            // If loggedInUserId is null...
+            loggedInUserId == null && loginAttemptMade -> {
+                // ... and a login attempt *was* made, it means login failed.
                 loginMessage = "Credenciales incorrectas. Verifica tu usuario y contraseña."
-                // Note: This message doesn't specifically say "user not registered"
-                // because the ViewModel only returns Boolean. If you need that specificity,
-                // your ViewModel/Controller need to provide more detailed failure info.
+                loginAttemptMade = false // Reset attempt state after failure
+                viewModel.resetLoginState() // Consume the failure event by resetting ViewModel state
             }
-            null -> {
-                // Initial state or after a previous attempt that didn't set true/false
-                loginMessage = null // No message initially
+            // If loggedInUserId is null and no attempt was made, it's the initial state.
+            else -> { // This covers the case loggedInUserId == null && !loginAttemptMade
+                loginMessage = null // No message initially or after a reset that wasn't from a failure
             }
         }
     }
@@ -93,6 +101,7 @@ fun LoginScreen(
             onClick = {
                 loginMessage = null // Clear previous message on new attempt
                 if (username.isNotBlank() && password.isNotBlank()) {
+                    loginAttemptMade = true // *** Mark that an attempt is being made BEFORE calling ViewModel ***
                     viewModel.login(username, password) // Call the login function
                 } else {
                     loginMessage = "Por favor, completa todos los campos." // Message for empty fields
@@ -109,6 +118,8 @@ fun LoginScreen(
         TextButton(
             onClick = {
                 loginMessage = null // Clear message when navigating away
+                loginAttemptMade = false // *** Reset attempt state when navigating away ***
+                viewModel.resetLoginState() // Reset ViewModel state on navigation away
                 onNavigateToRegistration() // Call the navigation callback
             },
             modifier = Modifier.align(Alignment.CenterHorizontally)
