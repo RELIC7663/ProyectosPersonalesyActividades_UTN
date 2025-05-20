@@ -14,8 +14,6 @@ Aplicación móvil para gestión de proyectos y actividades con autenticación d
 - 📊 Cálculo automático de avance
 - 🔒 Persistencia local con SQLite
 
-## Estructura de la Base de Datos
-![Diagrama Entidad-Relación](https://via.placeholder.com/800x400.png?text=Diagrama+ER+de+la+Base+de+Datos)
 
 ```sql
 -- Tabla: Users
